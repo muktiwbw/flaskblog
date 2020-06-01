@@ -1,0 +1,38 @@
+{% extends 'layouts/default.html' %}
+<!-- The extends syntax will search the file relative to templates folder -->
+<!-- So we don't have to worry about redirecting directories -->
+
+{% block content %}
+    <div class="content-section">
+        <form action="" method="post">
+            {{data.form.hidden_tag()}}
+            <fieldset class="form-group">
+                <legend class="border-bottom mb-4">Join Today</legend>
+                <div class="form-group">
+                    {{data.form.username.label(class="form-control-label")}}
+                    {{data.form.username(class="form-control form-control-lg")}}
+                </div>
+                <div class="form-group">
+                    {{data.form.email.label(class="form-control-label")}}
+                    {{data.form.email(class="form-control form-control-lg")}}
+                </div>
+                <div class="form-group">
+                    {{data.form.password.label(class="form-control-label")}}
+                    {{data.form.password(class="form-control form-control-lg")}}
+                </div>
+                <div class="form-group">
+                    {{data.form.confirm_password.label(class="form-control-label")}}
+                    {{data.form.confirm_password(class="form-control form-control-lg")}}
+                </div>
+            </fieldset>
+            <div class="form-group">
+                {{data.form.submit(class="btn btn-outline-info")}}
+            </div>
+        </form>
+    </div>
+    <div class="border-top pt-3">
+        <small class="text-muted">
+            Already have an account? <a href="{{url_for('login')}}" class="ml-2">Sign in</a>
+        </small>
+    </div>
+{% endblock content %}
