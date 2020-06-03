@@ -10,6 +10,9 @@ class User(db.Model):
     password = db.Column(db.String(60), nullable=False)
     posts = db.relationship('Post', backref='author', lazy=True)
 
+    # This is what you'll see when you print the model
+    # To make it easy to remember, just imagine that "repr" means representative,
+    # although it might actually mean that lol
     def __repr__(self):
         return f"User('{self.username}', '{self.email}', '{self.image_file}')"
 
