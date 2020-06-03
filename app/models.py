@@ -1,7 +1,14 @@
 from datetime import datetime
-from app import db
+from app import db, login_manager
+from flask_login import UserMixin
 
-class User(db.Model):
+# The decorator (@) allows modification to a function without actually altering the original function. Much like references.
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# Now the UserMixin class is necessary because the Login extension needs some properties from a model to be authenticable. It's like Authenticable interface in Laravel (i think).
+class User(db.Model, UserMixin):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(20), unique=True, nullable=False)
