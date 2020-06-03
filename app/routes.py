@@ -52,7 +52,10 @@ def register():
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
         user = User(username=form.username.data, email=form.email.data, password=hashed_password)
+        
+        # Add data instance to queue
         db.session.add(user)
+        # Commit (or save) to db
         db.session.commit()
 
         flash(f'Account created for {user.username}!', 'success')
