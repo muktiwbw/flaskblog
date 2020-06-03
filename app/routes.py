@@ -1,4 +1,4 @@
-from flask import render_template, url_for, flash, redirect
+from flask import render_template, url_for, flash, redirect, request
 from app import app, db, bcrypt
 from app.forms import RegistrationForm, LoginForm
 from app.models import User, Post
@@ -7,7 +7,7 @@ from app.models import User, Post
 # __init__.py is like the representative of the whole directory. So when you want to get variables or classes in that module, you just refer it as app (the directory name) instead of its initial file name (__init__.py).
 # If you want to refer other modules in app directory, use the directory name as a prefix (eg. app.forms, app.models, etc.).
 
-from flask_login import login_user, current_user, logout_user
+from flask_login import login_user, current_user, logout_user, login_required
 
 # Routes
 # Start with the route name, and then the handler below it
@@ -90,7 +90,11 @@ def login():
 
             flash(f'Welcome, {user.username}!', 'success')
 
-            return redirect(url_for('home'))
+            # Get query string called "next"
+            next_route = request.args.get('next')
+
+            # It's called ternary conditional operator where you use if-else in one line
+            return redirect(next_route) if next_route else redirect(url_for('home'))
         else:
             flash('Authentication failed. Please enter your email and password correctly.', 'danger')
 
@@ -107,3 +111,12 @@ def logout():
     flash('You are logged out.', 'success')
 
     return redirect(url_for('home'))
+
+@app.route('/account')
+@login_required
+def account():
+    data = {
+        'title': 'Account Page'
+    }
+
+    return render_template('account.html', data=data)

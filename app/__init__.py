@@ -19,5 +19,10 @@ bcrypt = Bcrypt(app)
 
 # Initialize login modul
 login_manager = LoginManager(app)
+# These two below are responsible for redirecting user if they're not authenticated
+# login_view tells the app to redirect to specified route method
+# login_message_category tells the app to show message in specified color or theme
+login_manager.login_view = 'login'
+login_manager.login_message_category = 'info'
 
 from app import routes
