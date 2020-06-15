@@ -15,7 +15,10 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(120), unique=True, nullable=False)
     image_file = db.Column(db.String(20), nullable=False, default='default.jpg')
     password = db.Column(db.String(60), nullable=False)
-    posts = db.relationship('Post', backref='author', lazy=True)
+    # You can think of it like hasMany() in Laravel
+    # But instead of writing down the backref with belongsToMany() to the child table, you use backref argument here
+    # You want to avoid using terms and just stick to the model name backref naming to avoid confusion
+    posts = db.relationship('Post', backref='user', lazy=True)
 
     # This is what you'll see when you print the model
     # To make it easy to remember, just imagine that "repr" means representative,

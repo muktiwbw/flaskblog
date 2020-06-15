@@ -1,0 +1,43 @@
+{% extends 'layouts/default.html' %}
+
+{% block content %}
+<div class="content-section">
+    <form action="" method="post">
+        {{data.form.hidden_tag()}}
+        <fieldset class="form-group">
+            <legend class="border-bottom mb-4">{{data.legend}}</legend>
+            <div class="form-group">
+                {{data.form.title.label(class="form-control-label")}}
+
+                {% if data.form.title.errors %}
+                    {{data.form.title(class="form-control form-control-lg is-invalid")}}
+                    <div class="invalid-feedback">
+                        {% for error in data.form.title.errors %}
+                            <span>{{error}}</span>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    {{data.form.title(class="form-control form-control-lg")}}
+                {% endif %}
+            </div>
+            <div class="form-group">
+                {{data.form.content.label(class="form-control-label")}}
+
+                {% if data.form.content.errors %}
+                    {{data.form.content(class="form-control form-control-lg is-invalid")}}
+                    <div class="invalid-feedback">
+                        {% for error in data.form.content.errors %}
+                            <span>{{error}}</span>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    {{data.form.content(class="form-control form-control-lg")}}
+                {% endif %}
+            </div>
+        </fieldset>
+        <div class="form-group">
+            {{data.form.submit(class="btn btn-outline-info")}}
+        </div>
+    </form>
+</div>
+{% endblock content %}

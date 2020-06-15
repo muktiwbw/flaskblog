@@ -1,9 +1,9 @@
 import secrets
 import os
 from PIL import Image
-from flask import render_template, url_for, flash, redirect, request
+from flask import render_template, url_for, flash, redirect, request, abort
 from app import app, db, bcrypt, us_images
-from app.forms import RegistrationForm, LoginForm, AccountUpdateForm
+from app.forms import RegistrationForm, LoginForm, AccountUpdateForm, PostCreateForm
 from app.models import User, Post
 # This is to clear things up.
 # The first app in "from app import app" refers to the app directory. The second one refers to the app variable in __init__.py
@@ -19,20 +19,7 @@ from werkzeug import FileStorage
 @app.route('/home')
 def home():
     # Data simulation. Wouldn't be used in the future
-    posts = [
-        {
-            'title': 'Blog Post One',
-            'content': 'This is the first blog post.',
-            'author': 'Abra',
-            'date_posted': '12 May 2020'
-        },
-        {
-            'title': 'Blog Post Two - Electric Boogaloo',
-            'content': 'This is the second blog post.',
-            'author': 'Cadabra',
-            'date_posted': '13 May 2020'
-        }
-    ]
+    posts = Post.query.order_by(Post.date_posted.desc()).all()
 
     # It's nice to encapsulate all the data into one dictionary
     data = {
@@ -138,7 +125,7 @@ def account():
     if form.validate_on_submit():
         # Remove current image if user has changed it once
         current_image_file = os.path.join(app.root_path, 'static/images/profile', current_user.image_file)
-        
+
         if current_user.image_file != 'default.jpg' and os.path.isfile(current_image_file):
             os.remove(current_image_file)
 
@@ -151,6 +138,8 @@ def account():
         current_user.image_file = filename
 
         db.session.commit()
+
+        flash('Your profile has been updated', 'success')
 
         return redirect(url_for('account'))
 
@@ -165,3 +154,87 @@ def account():
     }
 
     return render_template('account.html', data=data)
+
+@app.route('/post/create', methods=['GET', 'POST'])
+@login_required
+def post_create():
+    form = PostCreateForm()
+
+    if form.validate_on_submit():
+        post = Post(
+            title=form.title.data,
+            content=form.content.data,
+            user=current_user
+        )
+
+        db.session.add(post)
+        db.session.commit()
+
+        flash(f'Your post, {form.title.data} has been created!', 'success')
+        
+        return redirect(url_for('home'))
+
+    data = {
+        'title': 'Create Post',
+        'form': form,
+        'legend': 'Create post'
+    }
+    
+    return render_template('forms/post/create.html', data=data)
+
+@app.route('/post/<int:id>')
+def post_show(id):
+    post = Post.query.get_or_404(id)
+
+    data = {
+        'title': f'{post.title} - {post.user.username}',
+        'post': post
+    }
+
+    return render_template('post/show.html', data=data)
+
+@app.route('/post/<int:id>/edit', methods=['GET', 'POST'])
+@login_required
+def post_update(id):
+    post = Post.query.get_or_404(id)
+
+    if post.user.id != current_user.id:
+        abort(403)
+
+    form = PostCreateForm()
+
+    if form.validate_on_submit():
+        post.title = form.title.data
+        post.content = form.content.data
+
+        db.session.commit()
+
+        flash('Your post has been updated!', 'success')
+        
+        return redirect(url_for('post_show', id=id))
+    elif request.method == 'GET':
+        form.title.data = post.title
+        form.content.data = post.content
+
+    data = {
+        'title': 'Update Post',
+        'form': form,
+        'legend': 'Update post'
+    }
+
+    return render_template('forms/post/create.html', data=data)
+
+@app.route('/post/<int:id>/delete', methods=['POST'])
+@login_required
+def post_delete(id):
+    post = Post.query.get_or_404(id)
+
+    if post.user.id != current_user.id:
+        abort(403)
+
+    db.session.delete(post)
+    db.session.commit()
+
+    flash('Your post has been deleted successfully!', 'success')
+
+    return redirect(url_for('home'))
