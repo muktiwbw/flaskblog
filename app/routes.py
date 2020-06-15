@@ -1,6 +1,9 @@
+import secrets
+import os
+from PIL import Image
 from flask import render_template, url_for, flash, redirect, request
-from app import app, db, bcrypt
-from app.forms import RegistrationForm, LoginForm
+from app import app, db, bcrypt, us_images
+from app.forms import RegistrationForm, LoginForm, AccountUpdateForm
 from app.models import User, Post
 # This is to clear things up.
 # The first app in "from app import app" refers to the app directory. The second one refers to the app variable in __init__.py
@@ -8,6 +11,7 @@ from app.models import User, Post
 # If you want to refer other modules in app directory, use the directory name as a prefix (eg. app.forms, app.models, etc.).
 
 from flask_login import login_user, current_user, logout_user, login_required
+from werkzeug import FileStorage
 
 # Routes
 # Start with the route name, and then the handler below it
@@ -52,17 +56,30 @@ def register():
     if current_user.is_authenticated:
         return redirect(url_for('home'))
 
+    # This returns the data submitted from view
+    # If nothing is submitted or this method is accessed through GET method, it returns False
     form = RegistrationForm()
 
+    # This basically says if the form data pass various validations
+    # validate_on_submit() will return True when:
+    #   1. Form is submitted
+    #   2. Form values passed the validations
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
-        user = User(username=form.username.data, email=form.email.data, password=hashed_password)
-        
+
+        # Assign fields' value
+        user = User(
+            username=form.username.data, 
+            email=form.email.data, 
+            password=hashed_password
+        )
         # Add data instance to queue
         db.session.add(user)
         # Commit (or save) to db
         db.session.commit()
 
+        # f'string {var}' gives you ability to encapsulate variables into a string
+        # Only works in Python 3.6 and above
         flash(f'Account created for {user.username}!', 'success')
         return redirect(url_for('login'))
 
@@ -112,11 +129,39 @@ def logout():
 
     return redirect(url_for('home'))
 
-@app.route('/account')
+@app.route('/account', methods=['GET', 'POST'])
 @login_required
 def account():
+    form = AccountUpdateForm()
+
+    # validate_on_submit() already represents POST method, so no need to specify
+    if form.validate_on_submit():
+        # Remove current image if user has changed it once
+        current_image_file = os.path.join(app.root_path, 'static/images/profile', current_user.image_file)
+        
+        if current_user.image_file != 'default.jpg' and os.path.isfile(current_image_file):
+            os.remove(current_image_file)
+
+        # Save image, returns image filename
+        filename = us_images.save(form.image.data, folder='profile', name=f'ava-{secrets.token_hex(8)}.').split('/')[1]
+
+        # Flask_login allows to update model's value through session. This will also update the session immediately
+        current_user.username = form.username.data
+        current_user.email = form.email.data
+        current_user.image_file = filename
+
+        db.session.commit()
+
+        return redirect(url_for('account'))
+
+    elif request.method == 'GET':
+        # This is the way to populate field's value instead of doing it on the html file
+        form.username.data = current_user.username
+        form.email.data = current_user.email
+
     data = {
-        'title': 'Account Page'
+        'title': 'Account Page',
+        'form': form
     }
 
     return render_template('account.html', data=data)
