@@ -1,3 +1,4 @@
 __pycache__
 app/site.db
 app/static/images/profile/ava-*
+.env

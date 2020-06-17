@@ -113,3 +113,29 @@ class PostCreateForm(FlaskForm):
                             ])
 
     submit = SubmitField('Submit')
+
+class RPEmailForm(FlaskForm):
+    email = StringField('Email', validators=[
+                                    DataRequired()
+                                ])
+
+    submit = SubmitField('Send Verification Token')
+
+    def validate_email(self, email):
+        user = User.query.filter_by(email=email.data).first()
+
+        if not user:
+            raise ValidationError('Email is not registered!')
+
+class RPNewPasswordForm(FlaskForm):
+    password = PasswordField('Password', validators=[
+                                            DataRequired(),
+                                            Length(min=8)
+                                        ])
+
+    confirm_password = PasswordField('Confirm password', validators=[
+                                                            DataRequired(),
+                                                            EqualTo('password')
+                                                        ])
+
+    submit = SubmitField('Reset Password')

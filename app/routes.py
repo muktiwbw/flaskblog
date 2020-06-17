@@ -2,8 +2,8 @@ import secrets
 import os
 from PIL import Image
 from flask import render_template, url_for, flash, redirect, request, abort
-from app import app, db, bcrypt, us_images
-from app.forms import RegistrationForm, LoginForm, AccountUpdateForm, PostCreateForm
+from app import app, db, bcrypt, us_images, mail
+from app.forms import RegistrationForm, LoginForm, AccountUpdateForm, PostCreateForm, RPEmailForm, RPNewPasswordForm
 from app.models import User, Post
 # This is to clear things up.
 # The first app in "from app import app" refers to the app directory. The second one refers to the app variable in __init__.py
@@ -12,14 +12,17 @@ from app.models import User, Post
 
 from flask_login import login_user, current_user, logout_user, login_required
 from werkzeug import FileStorage
+from flask_mail import Message
 
 # Routes
 # Start with the route name, and then the handler below it
 @app.route('/')
 @app.route('/home')
 def home():
-    # Data simulation. Wouldn't be used in the future
-    posts = Post.query.order_by(Post.date_posted.desc()).all()
+    page = request.args.get('page', 1, type=int)
+    per_page = 5
+
+    posts = Post.query.order_by(Post.date_posted.desc()).paginate(per_page=per_page, page=page)
 
     # It's nice to encapsulate all the data into one dictionary
     data = {
@@ -238,3 +241,93 @@ def post_delete(id):
     flash('Your post has been deleted successfully!', 'success')
 
     return redirect(url_for('home'))
+
+@app.route('/user/<string:username>')
+def post_user(username):
+    page = request.args.get('page', 1, type=int)
+    per_page = 5
+
+    user = User.query.filter_by(username=username).first_or_404()
+
+    # Similar to bash code, you can add backslash to use it as line break so that your code don't go too far right
+    posts = Post.query.filter_by(user=user)\
+                        .order_by(Post.date_posted.desc())\
+                        .paginate(per_page=per_page, page=page)
+
+    # It's nice to encapsulate all the data into one dictionary
+    data = {
+        'posts': posts,
+        'user': user
+    }
+
+    return render_template('profile.html', data=data)
+
+@app.route('/reset_password', methods=['GET', 'POST'])
+def rp_email():
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+
+    form = RPEmailForm()
+
+    if form.validate_on_submit():
+        email = form.email.data
+        user = User.query.filter_by(email=email).first()
+
+        token = user.generate_reset_password_token()
+
+        msg = Message('Reset Password')
+        msg.add_recipient(email)
+        msg.html = render_template('emails/reset_password.html', token=token)
+
+        try:
+            mail.send(msg)
+        except:
+            flash('There was an error when sending message!', 'danger')
+            return redirect(url_for('rp_email'))
+
+        flash('Verification token has been sent. Please check your inbox!', 'success')
+        return redirect(url_for('rp_email'))
+
+    data = {
+        'title': 'Reset Password',
+        'form': form
+    }
+
+    return render_template('forms/rp_email.html', data=data)
+
+@app.route('/reset_password/<string:token>', methods=['GET', 'POST'])
+def rp_password(token):
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+
+    form = RPNewPasswordForm()
+
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=request.args.get('username')).first()
+
+        user.password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+
+        db.session.commit()
+
+        flash('You have successfully reset your password. Please login with your new password.', 'success')
+        return redirect(url_for('login'))
+
+    elif request.method == 'GET':
+        # This method returns a payload contains user id in a form of dictionary
+        payload = User.verify_reset_password_token(token)
+        
+        if not payload:
+            flash('Unable to verify token. It is either invalid or has already expired.', 'danger')
+            return redirect(url_for('rp_email'))
+
+        user = User.query.get(payload['id'])
+
+    data = {
+        'title': 'Reset Password',
+        'form': form,
+        'user': user,
+        'token': token
+    }
+
+    flash('Token is verified. Please enter your new password.', 'success')
+    return render_template('forms/rp_password.html', data=data)

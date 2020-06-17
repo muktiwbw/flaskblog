@@ -1,6 +1,7 @@
 from datetime import datetime
-from app import db, login_manager
+from app import db, login_manager, app
 from flask_login import UserMixin
+from itsdangerous import TimedJSONWebSignatureSerializer
 
 # The decorator (@) allows modification to a function without actually altering the original function. Much like references.
 @login_manager.user_loader
@@ -19,6 +20,30 @@ class User(db.Model, UserMixin):
     # But instead of writing down the backref with belongsToMany() to the child table, you use backref argument here
     # You want to avoid using terms and just stick to the model name backref naming to avoid confusion
     posts = db.relationship('Post', backref='user', lazy=True)
+
+    def generate_reset_password_token(self, expiration_time=1800):
+        secret_key = app.config['SECRET_KEY']
+        payload = {'id': self.id}
+
+        serializer = TimedJSONWebSignatureSerializer(secret_key, expiration_time)
+
+        token = serializer.dumps(payload).decode('utf-8')
+
+        return token
+
+    # Adding static method decorator means you can call this method directly without making any class intance
+    @staticmethod
+    def verify_reset_password_token(token):
+        secret_key = app.config['SECRET_KEY']
+        serializer = TimedJSONWebSignatureSerializer(secret_key)
+
+        try:
+            payload = serializer.loads(token)
+        except:
+            return None
+
+        return payload
+
 
     # This is what you'll see when you print the model
     # To make it easy to remember, just imagine that "repr" means representative,

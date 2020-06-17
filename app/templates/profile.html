@@ -1,0 +1,36 @@
+{% extends 'layouts/default.html' %}
+
+{% block content %}
+    <div class="media">
+        <img class="rounded-circle account-img" src="{{url_for('static', filename='images/profile/'+data.user.image_file)}}">
+        <div class="media-body">
+            <h2 class="account-heading">{{data.user.username}}</h2>
+            <p class="text-secondary">{{data.user.email}}</p>
+            <p class="text-secondary">{{data.posts.total}} posts</p>
+        </div>
+    </div>
+    {% for post in data.posts.items %}
+    <article class="media content-section">
+        <img src="{{url_for('static', filename='images/profile/'+post.user.image_file)}}" alt="{{post.user.username}}" class="rounded-circle article-img">
+        <div class="media-body">
+        <div class="article-metadata">
+            <a class="mr-2" href="{{url_for('post_user', username=post.user.username)}}">{{ post.user.username }}</a>
+            <small class="text-muted">{{ post.date_posted.strftime('%-d %b %Y at %H:%M') }}</small>
+        </div>
+        <h2><a class="article-title" href="{{url_for('post_show', id=post.id)}}">{{ post.title }}</a></h2>
+        <p class="article-content">{{ post.content }}</p>
+        </div>
+    </article>
+    {% endfor %}
+    {% for page_num in data.posts.iter_pages() %}
+    {% if page_num %}
+        {% if data.posts.page == page_num %}
+            <a href="{{url_for('post_user', username=data.user.username, page=page_num)}}" class="btn btn-info m-1">{{page_num}}</a>
+        {% else %}
+            <a href="{{url_for('post_user', username=data.user.username, page=page_num)}}" class="btn btn-outline-info m-1">{{page_num}}</a>
+        {% endif %}
+    {% else %}
+        ...
+    {% endif %}
+    {% endfor %}
+{% endblock content %}
